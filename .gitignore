@@ -1,2 +1,4 @@
 images/
+*.o
 debug
+equidist-equirect

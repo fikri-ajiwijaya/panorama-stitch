@@ -1,5 +1,8 @@
 # Main literature references
 
+## Paul Bourke
+
+- [Converting a fisheye image into a panoramic, spherical or perspective projection](http://paulbourke.net/dome/fish2/)
 - [Converting dual fisheye images into a spherical (equirectangular) projection](http://paulbourke.net/dome/dualfish2sphere/)
 - [Fisheye lens correction](http://paulbourke.net/dome/fisheyecorrect/)
 
@@ -8,6 +11,10 @@
 - [Understanding lenses, aperture, focal length and fisheye](https://epxx.co/artigos/pinhole_en.html)
 - [Map projection](https://www.marksmath.org/classes/common/MapProjection.pdf)
 - [Equirectangular and cubemap](http://www.paul-reed.co.uk/programming.html)
+
+## Paul Bourke
+
+- [Computer Generated Angular Fisheye Projections](http://paulbourke.net/dome/fisheye/)
 - [Classification of fisheye lenses](http://paulbourke.net/dome/fisheyetypes/)
 
 # Recommendations for future works
