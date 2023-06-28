@@ -1,7 +1,7 @@
 #include <exception>
 #include <cmath>
 #include <iostream>
-#include <stdexcept>
+#include <limits>
 #include <vector>
 #include <string>
 #include "stb/stb_image.h"
@@ -30,12 +30,39 @@ struct image_t {
 		stbi_write_png(filename.c_str(), w, h, STBI_rgb_alpha, data, 0);
 	}
 
-	unsigned char* pixel(int x, int y) const {
-		return data + y * w * 4 + x * 4;
+	struct pixel_t {
+		unsigned char& r;
+		unsigned char& g;
+		unsigned char& b;
+		unsigned char& a;
+
+		pixel_t(unsigned char* loc)
+			: r {loc[0]}, g {loc[1]}, b {loc[2]}, a {loc[3]}
+		{}
+
+		pixel_t& operator=(pixel_t const& p) {
+			r = p.r;
+			g = p.g;
+			b = p.b;
+			a = p.a;
+			return *this;
+		}
+
+		pixel_t& operator=(std::initializer_list<unsigned char> p) {
+			r = *(p.begin()+0);
+			g = *(p.begin()+1);
+			b = *(p.begin()+2);
+			a = *(p.begin()+3);
+			return *this;
+		}
+	};
+
+	pixel_t pixel(int x, int y) const {
+		return pixel_t(data + (y * w + x) * 4);
 	}
 };
 
-constexpr float pi = 3.14159265358979323846f;
+float constexpr pi {3.14159265358979323846f};
 
 int main(int argc, char* argv[]) {
 	std::ios_base::sync_with_stdio(false);
@@ -51,176 +78,95 @@ int main(int argc, char* argv[]) {
 		return -1;
 	}
 
-	auto const target_filename {args[1]};
-	auto const target_width {std::stoi(args[2])};
-	auto const target_height {std::stoi(args[3])};
+	std::string const dst_filename {args[1]};
+	float const dst_w {static_cast<float>(std::stoi(args[2]))};
+	float const dst_h {static_cast<float>(std::stoi(args[3]))};
 
-	auto const source_filename {args[4]};
-	auto const source_x0 {std::stoi(args[5])};
-	auto const source_y0 {std::stoi(args[6])};
-	auto const source_radius {std::stoi(args[7])};
-	auto const source_fov {std::stof(args[8])};
-	auto const source_yaw {std::stof(args[9])};
-	auto const source_pitch {std::stof(args[10])};
-	auto const source_roll {std::stof(args[11])};
+	std::string const src_filename {args[4]};
+	float const src_x0 {std::stof(args[5])};
+	float const src_y0 {std::stof(args[6])};
+	float const src_r {std::stof(args[7])};
+	float const src_fov {std::stof(args[8]) * pi / 180.0f};
+	float const src_xy {std::stof(args[9]) * pi / 180.0f};
+	float const src_xz {std::stof(args[10]) * pi / 180.0f};
+	float const src_yz {std::stof(args[11]) * pi / 180.0f};
 
-	image_t target_image {target_width, target_height};
-	image_t const source_image {source_filename};
+	image_t dst_img {static_cast<int>(dst_w), static_cast<int>(dst_h)};
+	image_t const src_img {src_filename};
 
-	std::cout
-		<< "Target filename: " << target_filename << "\n"
-		<< "Target width: " << target_width << "\n"
-		<< "Target height: " << target_height << "\n"
-		<< "\n"
-		<< "Source filename: " << source_filename << "\n"
-		<< "Source x0: " << source_x0 << "\n"
-		<< "Source y0: " << source_y0 << "\n"
-		<< "Source radius: " << source_radius << "\n"
-		<< "Source FOV: " << source_fov << "\n"
-		<< "Source yaw: " << source_yaw << "\n"
-		<< "Source pitch: " << source_pitch << "\n"
-		<< "Source roll: " << source_roll << "\n"
-		<< "\n"
-		<< "Target image width: " << target_image.w << "\n"
-		<< "Target image height: " << target_image.h << "\n"
-		<< "\n"
-		<< "Source image width: " << source_image.w << "\n"
-		<< "Source image height: " << source_image.h << "\n";
+	float const src_w {static_cast<float>(src_img.w)};
+	float const src_h {static_cast<float>(src_img.h)};
 
-	int max_target_i {0};
-	int min_target_i {0};
-	int max_target_j {0};
-	int min_target_j {0};
+	float min_dst_x {std::numeric_limits<float>::infinity()}, max_dst_x {-std::numeric_limits<float>::infinity()};
+	float min_dst_y {std::numeric_limits<float>::infinity()}, max_dst_y {-std::numeric_limits<float>::infinity()};
+	float min_p {std::numeric_limits<float>::infinity()}, max_p {-std::numeric_limits<float>::infinity()};
+	float min_l {std::numeric_limits<float>::infinity()}, max_l {-std::numeric_limits<float>::infinity()};
+	float min_x {std::numeric_limits<float>::infinity()}, max_x {-std::numeric_limits<float>::infinity()};
+	float min_y {std::numeric_limits<float>::infinity()}, max_y {-std::numeric_limits<float>::infinity()};
+	float min_z {std::numeric_limits<float>::infinity()}, max_z {-std::numeric_limits<float>::infinity()};
+	float min_r {std::numeric_limits<float>::infinity()}, max_r {-std::numeric_limits<float>::infinity()};
+	float min_t {std::numeric_limits<float>::infinity()}, max_t {-std::numeric_limits<float>::infinity()};
+	float min_src_x {std::numeric_limits<float>::infinity()}, max_src_x {-std::numeric_limits<float>::infinity()};
+	float min_src_y {std::numeric_limits<float>::infinity()}, max_src_y {-std::numeric_limits<float>::infinity()};
 
-	int max_source_i {0};
-	int min_source_i {0};
-	int max_source_j {0};
-	int min_source_j {0};
+	for (float dst_x {0}; dst_x < dst_w; ++dst_x) {
+	for (float dst_y {0}; dst_y < dst_h; ++dst_y) {
+		float const p {pi * (dst_y / dst_h - 0.5f)};
+		float const l {2.0f * pi * (dst_x / dst_w - 0.5f)};
 
-	float max_target_x {0.0f};
-	float min_target_x {0.0f};
-	float max_target_y {0.0f};
-	float min_target_y {0.0f};
+		float x {std::cos(p) * std::cos(l)};
+		float y {std::cos(p) * std::sin(l)};
+		float z {std::sin(p)};
 
-	float max_source_x {0.0f};
-	float min_source_x {0.0f};
-	float max_source_y {0.0f};
-	float min_source_y {0.0f};
+		y = std::cos(src_yz) * y - std::sin(src_yz) * z;
+		z = std::sin(src_yz) * y + std::cos(src_yz) * z;
 
-	float min_r {0.0f};
-	float max_r {0.0f};
+		x = std::cos(src_xz) * x - std::sin(src_xz) * z;
+		z = std::sin(src_xz) * x + std::cos(src_xz) * z;
 
-	for (int target_i {0}; target_i < target_image.h; ++target_i) {
-		float const target_y {target_i * 2.0f / static_cast<float>(target_image.h) - 1.0f};
-	for (int target_j {0}; target_j < target_image.w; ++target_j) {
-		float const target_x {target_j * 2.0f / static_cast<float>(target_image.w) - 1.0f};
+		x = std::cos(src_xy) * x - std::sin(src_xy) * y;
+		y = std::sin(src_xy) * x + std::cos(src_xy) * y;
 
-		// std::cout << target_i << "x" << target_j << "\n" << std::flush;
+		float const r {std::acos(x) / src_fov * 2.0f};
+		float const t {std::atan2(z, y)};
 
-		auto const target_pixel {target_image.pixel(target_j, target_i)};
+		float const src_x {src_x0 + src_r * r * std::cos(t)};
+		float const src_y {src_y0 + src_r * r * std::sin(t)};
 
-		// target_pixel[0] = target_pixel[1] = target_pixel[2] = 0x00;
+		if (
+			src_x > 0 && src_x < src_w && src_y > 0 && src_y < src_h
+			&& std::sqrt((src_x - src_x0) * (src_x - src_x0) + (src_y - src_y0) * (src_y - src_y0)) <= src_r
+		)
+			dst_img.pixel(dst_x, dst_y) = src_img.pixel(src_x, src_y);
+		else
+			dst_img.pixel(dst_x, dst_y) = {0x00, 0x00, 0x00, 0x00};
 
-		// if (target_y > 0)
-		// 	if (target_x > 0)
-		// 		target_pixel[0] = 0xff;
-		// 	else
-		// 		target_pixel[1] = 0xff;
-		// else
-		// 	if (target_x < 0)
-		// 		target_pixel[2] = 0xff;
-		// 	else
-		// 		target_pixel[0] = target_pixel[1] = 0xff;
-
-		// target_pixel[3] = 0xff;
-
-		// target_pixel[0] = 0x00;
-		// target_pixel[1] = 0x00;
-		// target_pixel[2] = 0xff;
-		// target_pixel[3] = 0xff;
-
-		float const latitude {target_y * pi / 2.0f};
-		float const longtitude {target_x * pi};
-
-		float const Px {std::cos(latitude) * std::cos(longtitude)};
-		float const Py {std::cos(latitude) * std::sin(longtitude)};
-		float const Pz {std::sin(latitude)};
-
-		float const r {2 * std::atan2(std::sqrt(Px * Px + Pz * Pz), Py) / (source_fov * pi / 180)};
-		float const theta {std::atan2(Pz, Px)};
-
-		float const source_x {r * std::cos(theta)};
-		float const source_y {r * std::sin(theta)};
-
-		int const source_i {static_cast<int>(source_y * source_radius + source_y0)};
-		int const source_j {static_cast<int>(source_x * source_radius + source_x0)};
-
-		if (target_i > max_target_i) max_target_i = target_i;
-		if (target_i < min_target_i) min_target_i = target_i;
-		if (target_j > max_target_j) max_target_j = target_j;
-		if (target_j < min_target_j) min_target_j = target_j;
-
-		if (source_i > max_source_i) max_source_i = source_i;
-		if (source_i < min_source_i) min_source_i = source_i;
-		if (source_j > max_source_j) max_source_j = source_j;
-		if (source_j < min_source_j) min_source_j = source_j;
-
-		if (target_x > max_target_x) max_target_x = target_x;
-		if (target_x < min_target_x) min_target_x = target_x;
-		if (target_y > max_target_y) max_target_y = target_y;
-		if (target_y < min_target_y) min_target_y = target_y;
-
-		if (source_x > max_source_x) max_source_x = source_x;
-		if (source_x < min_source_x) min_source_x = source_x;
-		if (source_y > max_source_y) max_source_y = source_y;
-		if (source_y < min_source_y) min_source_y = source_y;
-
-		if (r > max_r) max_r = r;
-		if (r < min_r) min_r = r;
-
-		if (source_i > 0 && source_i < source_image.h && source_j > 0 && source_j < source_image.w) {
-			auto const source_pixel {source_image.pixel(source_j, source_i)};
-			target_pixel[0] = source_pixel[0];
-			target_pixel[1] = source_pixel[1];
-			target_pixel[2] = source_pixel[2];
-			target_pixel[3] = source_pixel[3];
-		} else {
-			target_pixel[0] = 0x00;
-			target_pixel[1] = 0x00;
-			target_pixel[2] = 0x00;
-			target_pixel[3] = 0xff;
-		}
+		if (dst_x < min_dst_x) min_dst_x = dst_x; if (dst_x > max_dst_x) max_dst_x = dst_x;
+		if (dst_y < min_dst_y) min_dst_y = dst_y; if (dst_y > max_dst_y) max_dst_y = dst_y;
+		if (p < min_p) min_p = p; if (p > max_p) max_p = p;
+		if (l < min_l) min_l = l; if (l > max_l) max_l = l;
+		if (x < min_x) min_x = x; if (x > max_x) max_x = x;
+		if (y < min_y) min_y = y; if (y > max_y) max_y = y;
+		if (z < min_z) min_z = z; if (z > max_z) max_z = z;
+		if (r < min_r) min_r = r; if (r > max_r) max_r = r;
+		if (t < min_t) min_t = t; if (t > max_t) max_t = t;
+		if (src_x < min_src_x) min_src_x = src_x; if (src_x > max_src_x) max_src_x = src_x;
+		if (src_y < min_src_y) min_src_y = src_y; if (src_y > max_src_y) max_src_y = src_y;
 	}}
 
-	std::cout << "\n";
-	std::cout << "max_target_i: " << max_target_i << "\n";
-	std::cout << "min_target_i: " << min_target_i << "\n";
-	std::cout << "max_target_j: " << max_target_j << "\n";
-	std::cout << "min_target_j: " << min_target_j << "\n";
+	std::cout << "dst_x: " << min_dst_x << " " << max_dst_x << "\n";
+	std::cout << "dst_y: " << min_dst_y << " " << max_dst_y << "\n";
+	std::cout << "p: " << min_p << " " << max_p << "\n";
+	std::cout << "l: " << min_l << " " << max_l << "\n";
+	std::cout << "x: " << min_x << " " << max_x << "\n";
+	std::cout << "y: " << min_y << " " << max_y << "\n";
+	std::cout << "z: " << min_z << " " << max_z << "\n";
+	std::cout << "r: " << min_r << " " << max_r << "\n";
+	std::cout << "t: " << min_t << " " << max_t << "\n";
+	std::cout << "src_x: " << min_src_x << " " << max_src_x << "\n";
+	std::cout << "src_y: " << min_src_y << " " << max_src_y << "\n";
 
-	std::cout << "\n";
-	std::cout << "max_source_i: " << max_source_i << "\n";
-	std::cout << "min_source_i: " << min_source_i << "\n";
-	std::cout << "max_source_j: " << max_source_j << "\n";
-	std::cout << "min_source_j: " << min_source_j << "\n";
-
-	std::cout << "\n";
-	std::cout << "max_target_x: " << max_target_x << "\n";
-	std::cout << "min_target_x: " << min_target_x << "\n";
-	std::cout << "max_target_y: " << max_target_y << "\n";
-	std::cout << "min_target_y: " << min_target_y << "\n";
-
-	std::cout << "\n";
-	std::cout << "max_source_x: " << max_source_x << "\n";
-	std::cout << "min_source_x: " << min_source_x << "\n";
-	std::cout << "max_source_y: " << max_source_y << "\n";
-	std::cout << "min_source_y: " << min_source_y << "\n";
-
-	std::cout << "\n";
-	std::cout << "max_r: " << max_r << "\n";
-	std::cout << "min_r: " << min_r << "\n";
-
-	target_image.write_png(target_filename);
+	dst_img.write_png(dst_filename);
 
 	return 0;
 }
