@@ -3,7 +3,7 @@ CXXFLAGS := -std=c++17
 
 all: debug equidist-equirect
 
-debug: debug.cc stb_image.o stb_image_write.o
+debug: debug.cc
 
 equidist-equirect: equidist-equirect.cc stb_image.o stb_image_write.o
 
