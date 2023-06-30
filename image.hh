@@ -10,7 +10,10 @@ struct image_t {
 
 	image_t(char const* const);
 	image_t(int const, int const);
+	image_t(image_t const&) = delete;
+	image_t(image_t&&);
 	~image_t();
+
 
 	void write_png(char const*) const;
 

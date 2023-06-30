@@ -3,7 +3,7 @@ LINK.o = $(CXX) $(LDFLAGS) $(TARGET_ARCH)
 CFLAGS := -std=c17
 CXXFLAGS := -std=c++17
 
-all: debug equidist-equirect equirect-mask
+all: debug equidist-equirect equirect-mask equirect-blend
 
 debug: debug.o _image.o
 debug.o: debug.cc image.hh makefile
@@ -13,6 +13,9 @@ equidist-equirect.o: equidist-equirect.cc angle.hh image.hh constant.hh makefile
 
 equirect-mask: equirect-mask.o angle.o _image.o
 equirect-mask.o: equirect-mask.cc angle.hh image.hh constant.hh makefile
+
+equirect-blend: equirect-blend.o _image.o
+equirect-blend.o: equirect-blend.cc image.hh makefile
 
 angle.o: angle.cc angle.hh constant.hh makefile
 

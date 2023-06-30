@@ -23,9 +23,6 @@ int main(int const argc, char const* const* const argv) {
 	auto const [p1, p2] {ang_ran(deg_rad(std::stof(argv[3])), deg_rad(std::stof(argv[4])))};
 	auto const [l1, l2] {ang_ran(deg_rad(std::stof(argv[5])), deg_rad(std::stof(argv[6])))};
 
-	std::cout << "[p1, p2] = [" << rad_deg(p1) << ", " << rad_deg(p2) << "]\n";
-	std::cout << "[l1, l2] = [" << rad_deg(l1) << ", " << rad_deg(l2) << "]\n";
-
 	image_t src_img {src_file};
 
 	float const w {static_cast<float>(src_img.w)};

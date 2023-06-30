@@ -17,6 +17,14 @@ image_t::image_t(int const _w, int const _h)
 	: w {_w}, h {_h}, data {new float[w * h * 4]}
 {}
 
+image_t::image_t(image_t&& mv)
+	:	w {mv.w}, h {mv.h}, data {mv.data}
+{
+	mv.w = 0;
+	mv.h = 0;
+	mv.data = nullptr;
+}
+
 image_t::~image_t() {
 	delete[] data;
 }
