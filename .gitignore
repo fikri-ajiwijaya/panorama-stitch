@@ -2,3 +2,4 @@ images/
 *.o
 debug
 equidist-equirect
+equirect-mask
