@@ -13,7 +13,7 @@ int main(int const argc, char const* const* const argv) {
 			<< "Incorrect number of arguments.\n"
 			<< "\n"
 			<< "usage:\n"
-			<< "\tTARGET SOURCE latitude latitude longtitude longtitude";
+			<< "\tTARGET SOURCE latitude latitude longtitude longtitude\n";
 		return -1;
 	}
 
