@@ -3,6 +3,7 @@
 #include "image.hh"
 #include "angle.hh"
 #include "constant.hh"
+#include "matrix.hh"
 
 int main(int const argc, char const* const* const argv) {
 	std::ios_base::sync_with_stdio(false);
@@ -36,31 +37,38 @@ int main(int const argc, char const* const* const argv) {
 	float const src_w {static_cast<float>(src_img.w)};
 	float const src_h {static_cast<float>(src_img.h)};
 
-	auto const t {([](float const y, float const p, float const r) {
-		float const cy {std::cos(y)}; float const sy {std::sin(y)};
-		float const cp {std::cos(p)}; float const sp {std::sin(p)};
-		float const cr {std::cos(r)}; float const sr {std::sin(r)};
-		return new float const[] {
-			cy*cp, -cy*sp*sr-sy*cr, -cy*sp*cr+sy*sr,
-			sy*cp, -sy*sp*sr+cy*cr, -sy*sp*cr-cy*sr,
-			   sp,           cp*sr,           cp*cr
-		};
-	})(-src_ry, -src_rp, -src_rr)};
+	std::vector<float> const my {
+		std::cos(src_ry), -std::sin(src_ry), 0.0f,
+		std::sin(src_ry),  std::cos(src_ry), 0.0f,
+		            0.0f,              0.0f, 1.0f
+	};
+	std::vector<float> const mp {
+		std::cos(src_rp), 0.0f, -std::sin(src_rp),
+		            0.0f, 1.0f,              0.0f,
+		std::sin(src_rp), 0.0f,  std::cos(src_rp)
+	};
+	std::vector<float> const mr {
+		 1.0f,             0.0f,              0.0f,
+		 0.0f, std::cos(src_rr), -std::sin(src_rr),
+		 0.0f, std::sin(src_rr),  std::cos(src_rr)
+	};
+	auto const m {mat_mul(my, 3, 3, mat_mul(mp, 3, 3, mr, 3, 3), 3, 3)};
+	auto const m_ {mat_inv(m, 3)};
 
 	for (float dst_x {0}; dst_x < dst_w; ++dst_x) {
 	for (float dst_y {0}; dst_y < dst_h; ++dst_y) {
 		float const p {pi * (0.5f - dst_y / dst_h)};
 		float const l {2.0f * pi * (dst_x / dst_w - 0.5f)};
 
-		float const cp {std::cos(p)}; float const sp {std::sin(p)};
-		float const cl {std::cos(l)}; float const sl {std::sin(l)};
+		std::vector<float> const g {
+			std::cos(p) * std::cos(l),
+			std::cos(p) * std::sin(l),
+			std::sin(p)
+		};
+		std::vector<float> const g_ {mat_mul(m_, 3, 3, g, 3, 1)};
 
-		float const x {t[0]*cp*cl+t[1]*cp*sl+t[2]*sp};
-		float const y {t[3]*cp*cl+t[4]*cp*sl+t[5]*sp};
-		float const z {t[6]*cp*cl+t[7]*cp*sl+t[8]*sp};
-
-		float const r {2.0f * std::acos(x) / src_fov};
-		float const t {std::atan2(z, y)};
+		float const r {2.0f * std::acos(g_[0]) / src_fov};
+		float const t {std::atan2(g_[2], g_[1])};
 
 		float const src_x {src_x0 + src_r * r * std::cos(t)};
 		float const src_y {src_y0 - src_r * r * std::sin(t)};

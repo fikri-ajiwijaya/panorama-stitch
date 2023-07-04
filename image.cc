@@ -59,6 +59,6 @@ image_t::pixel_t& image_t::pixel_t::operator=(std::initializer_list<float const>
 	return *this;
 }
 
-image_t::pixel_t image_t::operator()(int const x, int const y) const {
+image_t::pixel_t image_t::operator()(int const x, int const y) {
 	return data + (y * w + x) * 4;
 }

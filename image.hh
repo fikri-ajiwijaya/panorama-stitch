@@ -14,7 +14,6 @@ struct image_t {
 	image_t(image_t&&);
 	~image_t();
 
-
 	void write_png(char const*) const;
 
 	struct pixel_t {
@@ -28,7 +27,7 @@ struct image_t {
 		pixel_t& operator=(std::initializer_list<float const> const);
 	};
 
-	pixel_t operator()(int const, int const) const;
+	pixel_t operator()(int const, int const);
 };
 
 #endif
